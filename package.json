@@ -4,6 +4,7 @@
   "description": "24/7 YouTube Streamer",
   "main": "index.js",
   "scripts": {
+    "prestart": "apt-get update && apt-get install -y ffmpeg",
     "start": "node index.js"
   },
   "dependencies": {
