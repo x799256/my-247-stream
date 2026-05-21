@@ -1,14 +1,12 @@
 {
-  "name": "canli-yayin-ffmpeg",
+  "name": "canli-yayin-temiz",
   "version": "1.0.0",
-  "description": "24/7 YouTube Streamer",
+  "description": "24/7 Canli Yayin",
   "main": "index.js",
   "scripts": {
-    "prestart": "apt-get update && apt-get install -y ffmpeg",
     "start": "node index.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "fluent-ffmpeg": "^2.1.2"
+    "express": "^4.18.2"
   }
 }
