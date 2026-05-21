@@ -4,9 +4,9 @@ const PORT = process.env.PORT || 3000;
 
 // ⚠️ BURA İSTƏDİYİN QƏDƏR YOUTUBE LİNKİ ƏLAVƏ EDƏ BİLƏRSƏN
 const videoList = [
-    "https://www.youtube.com/watch?v=PWFKYZ9cbis",
-    "https://www.youtube.com/watch?v=ChS5CcxbXlc",
-    "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    "https://www.youtube.com/watch?v=0Y_aBF8CDzQ",
+    "https://www.youtube.com/watch?v=-JCIUhtLrlE",
+    "https://www.youtube.com/watch?v=AmgKXWUFNug"
 ];
 
 app.get('/playlist.m3u', (req, res) => {
