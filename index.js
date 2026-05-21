@@ -2,24 +2,38 @@ const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ⚠️ YouTube videolarının 11 rəqəmli ID-ləri
-const videoIDs = [
-    "0Y_aBF8CDzQ",
-    "-JCIUhtLrlE",
-    "AmgKXWUFNug"
+// ⚠️ 1. Videolarının ID-lərini və dəqiq SANİYƏ müddətlərini bura yazırsan
+const playlist = [
+    { id: "0Y_aBF8CDzQ", duration: 77 }, // 1:17 = 77 saniyə
+    { id: "-JCIUhtLrlE", duration: 73 }, // 1:13 = 73 saniyə
+    { id: "AmgKXWUFNug", duration: 63 }  // 1:03 = 63 saniyə
 ];
 
-// ARTIQ LİNKİMİZ BİRBAŞA .m3u8 KİMİ DAVRANACAQ
+// Bütün videoların ümumi müddətini saniyə ilə hesablayırıq (Cəmi: 213 saniyə)
+const totalDuration = playlist.reduce((sum, video) => sum + video.duration, 0);
+
 app.get('/live.m3u8', (req, res) => {
-    // Videoları zamana görə sırayla fırladan riyazi döngü
-    const currentMinutes = Math.floor(Date.now() / 60000);
-    const videoIndex = Math.floor(currentMinutes / 15) % videoIDs.length; 
-    const activeVideoID = videoIDs[videoIndex];
+    // Cari vaxtı saniyəyə çeviririk (1970-dən bəri keçən saniyələr)
+    const currentSeconds = Math.floor(Date.now() / 1000);
+    
+    // Dünyanın ümumi zamanını bizim pleylistin ümumi müddətinə bölüb qalığı tapırıq
+    // Bu, döngünün buludda heç vaxt dayanmadan, saniyəbəsaniyə fırlanmasını təmin edir
+    let elapsedInLoop = currentSeconds % totalDuration;
+
+    let activeVideoID = playlist[0].id; // Varsayılan olaraq ilk video
+
+    // Şpion kimi saniyələri izləyib, hal-hazırda hansı videonun oynadığını tapırıq
+    for (const video of playlist) {
+        if (elapsedInLoop < video.duration) {
+            activeVideoID = video.id;
+            break;
+        }
+        elapsedInLoop -= video.duration;
+    }
 
     // Sənin işlək Cloudflare Worker linkin
     const workerStreamUrl = `https://movies.yt-hls.workers.dev/${activeVideoID}.m3u8`;
 
-    // 🚀 BURA ÇOX KRİTİKDİR: Pleyeri birbaşa worker linkinə yönləndiririk (Redirect)
     res.redirect(302, workerStreamUrl);
 });
 
