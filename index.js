@@ -2,23 +2,26 @@ const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ⚠️ BURA İSTƏDİYİN QƏDƏR YOUTUBE LİNKİ ƏLAVƏ EDƏ BİLƏRSƏN
-const videoList = [
-    "https://www.youtube.com/watch?v=0Y_aBF8CDzQ",
-    "https://www.youtube.com/watch?v=-JCIUhtLrlE",
-    "https://www.youtube.com/watch?v=AmgKXWUFNug"
+// ⚠️ Bura sadəcə YouTube videolarının 11 rəqəmli ID-lərini yazırıq (v= hissəsindən sonrakını)
+const videoIDs = [
+    "0Y_aBF8CDzQ",
+    "-JCIUhtLrlE",
+    "AmgKXWUFNug"
 ];
 
 app.get('/playlist.m3u', (req, res) => {
-    // Videoları zamana görə sırayla fırladan riyazi döngü (Kompütersiz işləyir)
+    // Videoları zamana görə sırayla fırladan riyazi döngü
     const currentMinutes = Math.floor(Date.now() / 60000);
-    const videoIndex = Math.floor(currentMinutes / 15) % videoList.length; 
-    const activeVideo = videoList[videoIndex];
+    const videoIndex = Math.floor(currentMinutes / 15) % videoIDs.length; 
+    const activeVideoID = videoIDs[videoIndex];
 
-    // Pleyerin başa düşəcəyi yönləndirmə şablonu
+    // SƏNİN İŞLƏK CLOUDFLARE WORKER LİNKİN
+    const workerStreamUrl = `https://movies.yt-hls.workers.dev/${activeVideoID}.m3u8`;
+
+    // Pleyer üçün təmiz M3U formatı
     let m3uContent = `#EXTM3U\n`;
     m3uContent += `#EXTINF:-1, Mənim 24/7 Canlı Kanalım\n`;
-    m3uContent += `${activeVideo}\n`;
+    m3uContent += `${workerStreamUrl}\n`;
 
     res.setHeader('Content-Type', 'audio/x-mpegurl');
     res.send(m3uContent);
