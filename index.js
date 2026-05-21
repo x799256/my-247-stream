@@ -1,44 +1,42 @@
 const express = require('express');
-const ffmpeg = require('fluent-ffmpeg');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ⚠️ Sənin YouTube videolarının ID-ləri
-const videoIDs = [
-    "0Y_aBF8CDzQ",
-    "-JCIUhtLrlE",
-    "AmgKXWUFNug"
+// ⚠️ YouTube videolarının ID-ləri və saniyə müddətləri
+const playlist = [
+    { id: "0Y_aBF8CDzQ", duration: 77 }, // 1:17
+    { id: "-JCIUhtLrlE", duration: 73 }, // 1:13
+    { id: "AmgKXWUFNug", duration: 63 }  // 1:03
 ];
 
-// Pleyerə ötürüləcək vahid canlı yayım linki
+const totalDuration = playlist.reduce((sum, video) => sum + video.duration, 0);
+
 app.get('/live.ts', (req, res) => {
-    // Cari zamana görə hansı videonun oynamalı olduğunu tapırıq
-    const currentMinutes = Math.floor(Date.now() / 60000);
-    const videoIndex = Math.floor(currentMinutes / 1) % videoIDs.length; // Hər 2 dəqiqədən bir videonu dəyişir
-    const activeVideoID = videoIDs[videoIndex];
+    const currentSeconds = Math.floor(Date.now() / 1000);
+    let elapsedInLoop = currentSeconds % totalDuration;
 
-    // Sənin işlək Cloudflare Worker linkin
-    const workerStreamUrl = `https://movies.yt-hls.workers.dev/${activeVideoID}.m3u8`;
+    let activeVideo = playlist[0];
 
-    console.log(`Yayımlanan video: ${activeVideoID}`);
+    for (const video of playlist) {
+        if (elapsedInLoop < video.duration) {
+            activeVideo = video;
+            break;
+        }
+        elapsedInLoop -= video.duration;
+    }
 
-    // Pleyerə bunun rəsmi bir Canlı TV yayımı (MPEG-TS) olduğunu bildiririk
-    res.contentType('video/mp2t');
+    // Pleyerin "bu eyni videodur" deyib keşləməməsi üçün linkin sonuna dynamic bir saniyə ID-si əlavə edirik
+    // Bu, pleyeri hər dəfə yeni bir canlı TV yayımı açıldığına inandıracaq
+    const workerStreamUrl = `https://movies.yt-hls.workers.dev/${activeVideo.id}.m3u8?stream_type=live&timestamp=${currentSeconds}`;
 
-    // FFmpeg işə düşür: Videonun formatını pleyer üçün standart "Canlı TV" formatına salır
-    ffmpeg(workerStreamUrl)
-        .inputOptions([
-            '-re' // Videonu öz real vaxt sürətində oxu (canlı yayım effekti)
-        ])
-        .outputOptions([
-            '-c:v copy', // Videonu yenidən kodlama (Render serveri yorulmasın və sürətli olsun)
-            '-c:a copy', // Səsi yenidən kodlama
-            '-f mpegts'  // Vahid Canlı TV formatı
-        ])
-        .on('error', (err) => {
-            console.log('FFmpeg Xətası: ' + err.message);
-        })
-        .pipe(res, { end: true }); // Yayımı birbaşa pleyerə ötür (pipe)
+    // Təhlükəsizlik və keş əleyhinə bəyanatlar
+    res.setHeader('Content-Type', 'video/mp2t');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    // Pleyeri birbaşa worker linkinə 302 ilə yönləndiririk
+    res.redirect(302, workerStreamUrl);
 });
 
-app.listen(PORT, () => console.log(`Server 24/7 rejimində ${PORT} portunda aktivdir`));
+app.listen(PORT, () => console.log(`Server ${PORT} portunda aktivdir`));
